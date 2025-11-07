@@ -1,0 +1,13 @@
+minutetoure.duckdns.org, minutetour.se, www.minutetour.se {
+    encode gzip
+
+    # Strip /api and proxy to backend
+    handle_path /api/* {
+        reverse_proxy backend:8000
+    }
+
+    # Everything else → frontend (SPA)
+    handle {
+        reverse_proxy frontend:80
+    }
+}

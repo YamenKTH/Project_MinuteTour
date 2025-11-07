@@ -1,0 +1,67 @@
+version: "3.8"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - osrm
+    environment:
+      - OSRM_URL=http://osrm:5000
+    networks:
+      - app-network
+    volumes:
+      - ./backend:/app
+      - ./backend/osrm-data:/data
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    # Optional: if your Vue app uses env vars, pass backend base URL
+    environment:
+      - VITE_BACKEND_URL=/api
+
+  osrm:
+    image: osrm/osrm-backend
+    command: osrm-routed --algorithm mld /data/sweden-latest.osrm
+    ports:
+      - "5500:5000"
+    volumes:
+      - ./backend/osrm-data:/data
+    networks:
+      - app-network
+
+  caddy:
+      image: caddy:2
+      depends_on:
+        - frontend
+        - backend
+      ports:
+        - "80:80"
+        - "443:443"
+      volumes:
+        - ./Caddyfile:/etc/caddy/Caddyfile:ro
+        - caddy_data:/data
+        - caddy_config:/config
+      networks:
+        - app-network      
+
+# Shared network so containers see each other by name
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
+
